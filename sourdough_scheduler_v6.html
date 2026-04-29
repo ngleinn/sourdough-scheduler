@@ -1,0 +1,251 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.app{padding:1.5rem 0;max-width:680px;font-family:var(--font-sans)}
+.section{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:1rem}
+.section-title{font-size:13px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem}
+.row{display:flex;align-items:center;gap:12px;margin-bottom:.75rem}
+.row:last-child{margin-bottom:0}
+label{font-size:14px;color:var(--color-text-secondary);min-width:120px;flex-shrink:0}
+input[type=time],input[type=date]{font-size:14px;padding:6px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary)}
+input[type=time]{width:110px}input[type=date]{width:160px}
+.target-tabs{display:flex;gap:6px;margin-bottom:1rem}
+.tab{flex:1;padding:8px;font-size:13px;font-weight:500;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-secondary);cursor:pointer;text-align:center}
+.tab.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.calc-btn{width:100%;padding:10px;font-size:14px;font-weight:500;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-primary);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;margin-top:.5rem}
+.calc-btn:hover{background:var(--color-background-secondary)}
+.day-header{font-size:12px;font-weight:500;color:var(--color-text-tertiary);padding:.75rem 0 .4rem;letter-spacing:.04em;border-top:0.5px solid var(--color-border-tertiary);margin-top:.25rem}
+.day-header:first-child{border-top:none;margin-top:0}
+.tl-row{display:flex;gap:12px;align-items:center;padding:.5rem 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.tl-row:last-child{border-bottom:none}
+.tl-time{min-width:60px;flex-shrink:0;font-weight:500;color:var(--color-text-primary)}
+.tl-label{color:var(--color-text-secondary);flex:1}
+.tl-ctrl{display:flex;align-items:center}
+.tl-dur{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.dur-select-wrap{position:relative;display:inline-flex;align-items:center}
+.dur-select-wrap select{appearance:none;-webkit-appearance:none;border:none;background:transparent;font-size:13px;font-weight:500;color:var(--color-text-primary);padding:0;padding-right:16px;cursor:pointer;outline:none}
+.dur-select-wrap::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--color-text-primary);pointer-events:none}
+.add-mode-row{display:flex;gap:6px;margin-top:.75rem;padding-top:.75rem;border-top:0.5px solid var(--color-border-tertiary)}
+.add-btn{font-size:12px;padding:3px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer}
+.add-btn:hover{background:var(--color-background-secondary)}
+.mode-x{font-size:11px;color:var(--color-text-tertiary);cursor:pointer;padding:0 4px;margin-left:4px}
+.mode-x:hover{color:#D85A30}
+</style>
+
+<div class="app">
+  <div class="section">
+    <div class="section-title">計算目標</div>
+    <div class="target-tabs">
+      <button class="tab active" id="tabBake" onclick="switchTab('bake')">指定出爐時間</button>
+      <button class="tab" id="tabChill" onclick="switchTab('chill')">指定開始冷藏時間</button>
+    </div>
+    <div id="paneBake">
+      <div class="row"><label>日期</label><input type="date" id="bakeDate"></div>
+      <div class="row"><label>出爐時間</label><input type="time" id="bakeTime" value="17:00"></div>
+    </div>
+    <div id="paneChill" style="display:none">
+      <div class="row"><label>日期</label><input type="date" id="chillDate"></div>
+      <div class="row"><label>開始冷藏時間</label><input type="time" id="chillTime" value="22:00"></div>
+    </div>
+    <button class="calc-btn" onclick="calculate()">計算時程</button>
+  </div>
+
+  <div class="section" id="result" style="display:none">
+    <div class="section-title">時程表</div>
+    <div id="tlBody"></div>
+    <div class="add-mode-row">
+      <button class="add-btn" onclick="addMode('A')">+ A 模式</button>
+      <button class="add-btn" onclick="addMode('B')">+ B 模式</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const WD=['日','一','二','三','四','五','六'];
+let modes=['A','B'];
+let tlSteps=[];
+
+function switchTab(t){
+  document.getElementById('tabBake').classList.toggle('active',t==='bake');
+  document.getElementById('tabChill').classList.toggle('active',t==='chill');
+  document.getElementById('paneBake').style.display=t==='bake'?'':'none';
+  document.getElementById('paneChill').style.display=t==='chill'?'':'none';
+}
+
+(function(){
+  const fmt=d=>{
+    const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${mo}-${day}`;
+  };
+  const today=new Date();
+  document.getElementById('bakeDate').value=fmt(today);
+  document.getElementById('chillDate').value=fmt(today);
+})();
+
+// 把 date string + time string 轉成本地時間的分鐘數（從 epoch 起算，但用本地時間計算）
+function parseLocalDateTime(dateStr, timeStr){
+  const [y,mo,d]=dateStr.split('-').map(Number);
+  const [h,m]=timeStr.split(':').map(Number);
+  return new Date(y, mo-1, d, h, m, 0, 0);
+}
+
+function fmtDateLabel(anchorDate, offsetMin){
+  const d=new Date(anchorDate.getTime()+offsetMin*60000);
+  return `${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]})`;
+}
+
+function fmtTime(anchorDate, offsetMin){
+  const d=new Date(anchorDate.getTime()+offsetMin*60000);
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+function fmtDur(mins){
+  if(mins<60)return mins+'min';
+  const h=Math.floor(mins/60),m=mins%60;
+  return m?`${h}h${m}min`:`${h}h`;
+}
+
+function buildSteps(){
+  function prevVal(id,def){
+    const s=tlSteps.find(s=>s.id===id);
+    return s?s.rangeVal:def;
+  }
+  const steps=[];
+  modes.forEach((m,i)=>{
+    const isA=m==='A';
+    const rv=prevVal(`s1_${i}`,isA?16:8);
+    steps.push({id:`s1_${i}`,label:`Step 1 — 母種 ${m} 模式（第${i+1}次）`,
+      dur:rv*60,passive:true,
+      range:isA?{min:16,max:20,step:1,unit:'h',mul:60}:{min:6,max:10,step:1,unit:'h',mul:60},
+      rangeVal:rv,mode:m,modeIdx:i});
+  });
+  const cVal=prevVal('s2',16);
+  steps.push({id:'s2',label:'Step 2 — 麵團種（C 模式）',dur:cVal*60,passive:true,
+    range:{min:12,max:16,step:1,unit:'h',mul:60},rangeVal:cVal});
+  steps.push({id:'s3',label:'Step 3 — 混合',dur:15});
+  steps.push({id:'s4',label:'Step 4 — 自溶',dur:60,passive:true});
+  steps.push({id:'s5',label:'Step 5 — 攪拌',dur:90});
+  const bfVal=prevVal('s6',3.5);
+  steps.push({id:'s6',label:'Step 6 — 基本發酵',dur:bfVal*60,passive:true,
+    range:{min:3,max:4,step:0.5,unit:'h',mul:60},rangeVal:bfVal});
+  steps.push({id:'s7',label:'Step 7 — 分割',dur:5});
+  steps.push({id:'s8',label:'Step 8 — 初步整形 + 靜置',dur:30});
+  steps.push({id:'s9',label:'Step 9 — 最後整形',dur:15});
+  const prevExt=tlSteps.find(s=>s.id==='s10');
+  if(prevExt&&prevExt.dur>0)
+    steps.push({id:'s10',label:'Step 10 — 調整發酵',dur:prevExt.dur,passive:true});
+  const cfVal=prevVal('s11',24);
+  steps.push({id:'s11',label:'Step 11 — 冷藏發酵',dur:cfVal*60,passive:true,isChill:true,
+    range:{min:20,max:30,step:1,unit:'h',mul:60},rangeVal:cfVal});
+  steps.push({id:'s12a',label:'Step 12 — 預熱',dur:60,preheat:true});
+  steps.push({id:'s12b',label:'Step 12 — 烘烤',dur:15});
+  return steps;
+}
+
+function computeTimeline(steps){
+  const isBake=document.getElementById('tabBake').classList.contains('active');
+
+  // 順序步驟（排除預熱）
+  const seqSteps=steps.filter(s=>!s.preheat);
+  const totalSeq=seqSteps.reduce((a,s)=>a+s.dur,0);
+
+  // anchor 用本地時間解析
+  let anchorDate;
+  if(isBake){
+    anchorDate=parseLocalDateTime(
+      document.getElementById('bakeDate').value,
+      document.getElementById('bakeTime').value
+    );
+    // anchorDate = 出爐時間（最後順序步驟結束）
+    // Step1 開始 = anchorDate - totalSeq
+    var step1Start=new Date(anchorDate.getTime()-totalSeq*60000);
+  } else {
+    anchorDate=parseLocalDateTime(
+      document.getElementById('chillDate').value,
+      document.getElementById('chillTime').value
+    );
+    const chillIdx=seqSteps.findIndex(s=>s.isChill);
+    const beforeChill=seqSteps.slice(0,chillIdx).reduce((a,s)=>a+s.dur,0);
+    var step1Start=new Date(anchorDate.getTime()-beforeChill*60000);
+  }
+
+  // step1Start 是 offset=0 的基準點
+  let cursor=0;
+  let chillEndOffset=0;
+  const rows=[];
+
+  for(const s of steps){
+    if(s.preheat){
+      rows.push({...s, offset: chillEndOffset-60});
+    } else {
+      rows.push({...s, offset: cursor});
+      if(s.isChill) chillEndOffset=cursor+s.dur;
+      cursor+=s.dur;
+    }
+  }
+
+  return {rows, baseDate: step1Start};
+}
+
+function calculate(){
+  tlSteps=buildSteps();
+  renderTimeline();
+}
+
+function renderTimeline(){
+  const {rows,baseDate}=computeTimeline(tlSteps);
+  let currentDay=null,dayNum=1,html='';
+
+  for(const s of rows){
+    const dayLabel=fmtDateLabel(baseDate,s.offset);
+    if(dayLabel!==currentDay){
+      currentDay=dayLabel;
+      html+=`<div class="day-header">Day ${dayNum} &nbsp; ${dayLabel}</div>`;
+      dayNum++;
+    }
+    const timeStr=fmtTime(baseDate,s.offset);
+    let ctrl='';
+    if(s.range){
+      const opts=[];
+      for(let v=s.range.min;v<=s.range.max+0.001;v+=s.range.step){
+        const vr=Math.round(v*10)/10;
+        opts.push(`<option value="${vr}"${vr===s.rangeVal?' selected':''}>${vr}${s.range.unit}</option>`);
+      }
+      ctrl=`<div class="dur-select-wrap"><select onchange="updateStep('${s.id}',parseFloat(this.value),${s.range.mul})">${opts.join('')}</select></div>`;
+    } else {
+      ctrl=`<span class="tl-dur">${fmtDur(s.dur)}</span>`;
+    }
+    const modeX=s.modeIdx!==undefined
+      ?`<span class="mode-x" onclick="removeMode(${s.modeIdx})">✕</span>`:'';
+    html+=`<div class="tl-row">
+      <div class="tl-time">${timeStr}</div>
+      <div class="tl-label">${s.label}</div>
+      <div class="tl-ctrl">${ctrl}${modeX}</div>
+    </div>`;
+  }
+
+  document.getElementById('tlBody').innerHTML=html;
+  document.getElementById('result').style.display='';
+}
+
+function updateStep(id,val,mul){
+  const s=tlSteps.find(s=>s.id===id);
+  if(!s)return;
+  s.dur=Math.round(val*mul);
+  s.rangeVal=val;
+  renderTimeline();
+}
+
+function addMode(m){
+  modes.push(m);
+  tlSteps=buildSteps();
+  renderTimeline();
+}
+
+function removeMode(i){
+  if(modes.length<=1)return;
+  modes.splice(i,1);
+  tlSteps=buildSteps();
+  renderTimeline();
+}
+</script>
